@@ -28,6 +28,7 @@ export default function App() {
   const [expoPushToken, setExpoPushToken] = React.useState("");
   const [notification, setNotification] = React.useState(false);
   const [minutes, setMinutes] = React.useState("10");
+  const [cancle, setCancle] = React.useState("");
   const notificationListener = React.useRef();
   const responseListener = React.useRef();
 
@@ -54,18 +55,22 @@ export default function App() {
     };
   }, []);
 
-  async function schedulePushNotification() {
-    await Notifications.scheduleNotificationAsync({
+  async function schedulePushNotification(title, body, time) {
+    const notification = await Notifications.scheduleNotificationAsync({
       content: {
-        title: "ਵਾਹਿਗੁਰੂ",
-        body: "NAAM JAPO",
+        title: title,
+        body: body,
         data: { data: "goes here" },
       },
       trigger: {
-        seconds: parseInt(minutes),
+        seconds: parseInt(time),
         repeats: true,
       },
     });
+    return notification;
+  }
+  async function scheduleAndCancel(theNotification) {
+    await Notifications.cancelScheduledNotificationAsync(theNotification);
   }
 
   const sent =
@@ -81,8 +86,26 @@ export default function App() {
       <Button
         title={sent}
         onPress={async () => {
-          Notifications.cancelAllScheduledNotificationsAsync();
-          await schedulePushNotification();
+          // Notifications.cancelAllScheduledNotificationsAsync();
+          await schedulePushNotification("Vaheguru", "First", 10);
+        }}
+        icon={{
+          name: "arrow-right",
+          size: 15,
+          color: "white",
+        }}
+      />
+      <Button
+        title={sent}
+        onPress={async () => {
+          // Notifications.cancelAllScheduledNotificationsAsync();
+          const theCancle = await schedulePushNotification(
+            "2Vaheguru",
+            "Second",
+            5
+          );
+          console.log(theCancle);
+          setCancle(theCancle);
         }}
         icon={{
           name: "arrow-right",
@@ -94,6 +117,8 @@ export default function App() {
         title="STOP"
         onPress={() => {
           console.log("Stop");
+          console.log(cancle);
+          scheduleAndCancel(cancle);
           Notifications.cancelAllScheduledNotificationsAsync();
         }}
       />
