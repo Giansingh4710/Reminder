@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useState, useRef, useReducer } from "react";
 // import MapView, { Callout, Circle, Marker } from "react-native-maps";
 import {
   StyleSheet,
@@ -7,30 +7,46 @@ import {
   Dimensions,
   TextInput,
   TouchableOpacity,
+  FlatList,
 } from "react-native";
-
-import { Button, Switch } from "react-native-elements";
 
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import { Icon } from "react-native-elements";
 
-// const Khajana = require("khajana");
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+import { initialState, actions, reducer } from "./state";
+import PlusIconModal from "./components/firstPlus";
+import GetInputModal from "./components/getInputModal";
+import ReminderItem from "./components/eachReminer";
 
 export default function App() {
-  const [expoPushToken, setExpoPushToken] = React.useState("");
-  const [notification, setNotification] = React.useState(false);
-  const [minutes, setMinutes] = React.useState("10");
-  const [cancle, setCancle] = React.useState("");
-  const notificationListener = React.useRef();
-  const responseListener = React.useRef();
+  //for notifications. No idea how they work
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [notification, setNotification] = useState(false);
+  const [cancle, setCancle] = useState("");
+  const notificationListener = useRef();
+  const responseListener = useRef();
+  //other stuff
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  async function schedulePushNotification(title, body, time) {
+    const notification = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: body,
+        data: { data: "goes here" },
+      },
+      trigger: {
+        seconds: parseInt(time),
+        repeats: true,
+      },
+    });
+    return notification;
+  }
+
+  async function scheduleAndCancel(theNotification) {
+    await Notifications.cancelScheduledNotificationAsync(theNotification);
+  }
 
   React.useEffect(() => {
     registerForPushNotificationsAsync().then((token) =>
@@ -55,29 +71,74 @@ export default function App() {
     };
   }, []);
 
-  async function schedulePushNotification(title, body, time) {
-    const notification = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: title,
-        body: body,
-        data: { data: "goes here" },
-      },
-      trigger: {
-        seconds: parseInt(time),
-        repeats: true,
-      },
-    });
-    return notification;
+  if (state.allReminders.length === 0) {
+    return (
+      <View style={styles.container}>
+        <GetInputModal
+          theVisible={state.showInputModal}
+          dispatch={dispatch}
+          actions={actions}
+        />
+        <PlusIconModal
+          theVisible={state.showPlusModal}
+          dispatch={dispatch}
+          actions={actions}
+        />
+      </View>
+    );
   }
-  async function scheduleAndCancel(theNotification) {
-    await Notifications.cancelScheduledNotificationAsync(theNotification);
-  }
-
-  const sent =
-    "Press to schedule the notification every " + minutes + " minutes";
   return (
     <View style={styles.container}>
-      <TextInput
+      <GetInputModal
+        theVisible={state.showInputModal}
+        dispatch={dispatch}
+        actions={actions}
+      />
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Your Reminders</Text>
+      </View>
+      <View style={styles.list}>
+        <FlatList
+          // style={styles.list}
+          data={state.allReminders}
+          keyExtractor={(rem) => rem.id}
+          scrollEnabled
+          renderItem={({ item }) => {
+            // console.log(item);
+            const index = state.allReminders.indexOf(item);
+            return (
+              <ReminderItem
+                dispatch={dispatch}
+                actions={actions}
+                id={item.id}
+                data={item.data}
+                index={index}
+              />
+            );
+          }}
+        />
+      </View>
+      {state.showInputModal ? (
+        <View />
+      ) : (
+        <View style={styles.plusIcon}>
+          <Icon
+            name="add-outline"
+            type="ionicon"
+            color="#002D62"
+            size={100}
+            onPress={() => {
+              dispatch(actions.setInputModal);
+            }}
+            // onLongPress={() => console.log("LON")}
+          />
+        </View>
+      )}
+    </View>
+  );
+
+  {
+    /* <TextInput
         keyboardType="numeric"
         style={styles.textInput}
         value={minutes}
@@ -94,8 +155,10 @@ export default function App() {
           size: 15,
           color: "white",
         }}
-      />
-      <Button
+      /> */
+  }
+  {
+    /* <Button
         title={sent}
         onPress={async () => {
           // Notifications.cancelAllScheduledNotificationsAsync();
@@ -121,21 +184,40 @@ export default function App() {
           scheduleAndCancel(cancle);
           Notifications.cancelAllScheduledNotificationsAsync();
         }}
-      />
-    </View>
-  );
+      /> */
+  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#f8f8",
     alignItems: "center",
-    justifyContent: "center",
+    // justifyContent: "center",
   },
-  textInput: {
-    backgroundColor: "yellow",
+  header: {
+    paddingTop: "10%",
   },
+  headerText: {
+    fontSize: 24,
+  },
+  plusIcon: {
+    // top: "30%",
+    // left: "40%",
+  },
+  list: {
+    width: "95%",
+    height: "70%",
+    backgroundColor: "blue",
+  },
+});
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
 });
 
 async function registerForPushNotificationsAsync() {
