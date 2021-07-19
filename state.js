@@ -19,6 +19,9 @@ export const actions = {
       reminderId: theReminderId,
     };
   },
+  deleteAllReminders: {
+    type: "DELETE_ALL",
+  },
 };
 
 export const reducer = (state, action) => {
@@ -41,6 +44,12 @@ export const reducer = (state, action) => {
     return {
       ...state,
       allReminders: newReminders,
+    };
+  }
+  if (action.type === "DELETE_ALL") {
+    return {
+      ...state,
+      allReminders: [],
     };
   }
   return state;

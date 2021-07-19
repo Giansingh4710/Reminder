@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
 } from "react-native";
 
 import Constants from "expo-constants";
@@ -44,34 +45,12 @@ export default function App() {
     return notification;
   }
 
-  async function scheduleAndCancel(theNotification) {
-    await Notifications.cancelScheduledNotificationAsync(theNotification);
+  async function scheduleAndCancel(theNotificationId) {
+    await Notifications.cancelScheduledNotificationAsync(theNotificationId);
   }
 
-  React.useEffect(() => {
-    registerForPushNotificationsAsync().then((token) =>
-      setExpoPushToken(token)
-    );
-
-    notificationListener.current =
-      Notifications.addNotificationReceivedListener((notification) => {
-        setNotification(notification);
-      });
-
-    responseListener.current =
-      Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log(response);
-      });
-
-    return () => {
-      Notifications.removeNotificationSubscription(
-        notificationListener.current
-      );
-      Notifications.removeNotificationSubscription(responseListener.current);
-    };
-  }, []);
-
   if (state.allReminders.length === 0) {
+    Notifications.cancelAllScheduledNotificationsAsync();
     return (
       <View style={styles.container}>
         <GetInputModal
@@ -121,77 +100,53 @@ export default function App() {
       {state.showInputModal ? (
         <View />
       ) : (
-        <View style={styles.plusIcon}>
-          <Icon
-            name="add-outline"
-            type="ionicon"
-            color="#002D62"
-            size={100}
-            onPress={() => {
-              dispatch(actions.setInputModal);
+        <View style={styles.lastRow}>
+          <View style={{ flex: 1 }}>
+            <Icon
+              // style={{ flex: 1 }}
+              name="add-outline"
+              type="ionicon"
+              color="#00BFFF"
+              size={100}
+              onPress={() => {
+                dispatch(actions.setInputModal);
+              }}
+              // onLongPress={() => console.log("LON")}
+            />
+          </View>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              backgroundColor: "red",
+              borderRadius: 20,
+              width: 110,
+              textAlign: "center",
             }}
-            // onLongPress={() => console.log("LON")}
-          />
+            onPress={() => {
+              console.log("cancled all notifications");
+              dispatch(actions.deleteAllReminders);
+              Notifications.cancelAllScheduledNotificationsAsync();
+            }}
+          >
+            <Text
+              style={{
+                textAlign: "center",
+                textAlignVertical: "center",
+              }}
+            >
+              Cancel all notifications
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
     </View>
   );
-
-  {
-    /* <TextInput
-        keyboardType="numeric"
-        style={styles.textInput}
-        value={minutes}
-        onChangeText={(text) => setMinutes(text)}
-      />
-      <Button
-        title={sent}
-        onPress={async () => {
-          // Notifications.cancelAllScheduledNotificationsAsync();
-          await schedulePushNotification("Vaheguru", "First", 10);
-        }}
-        icon={{
-          name: "arrow-right",
-          size: 15,
-          color: "white",
-        }}
-      /> */
-  }
-  {
-    /* <Button
-        title={sent}
-        onPress={async () => {
-          // Notifications.cancelAllScheduledNotificationsAsync();
-          const theCancle = await schedulePushNotification(
-            "2Vaheguru",
-            "Second",
-            5
-          );
-          console.log(theCancle);
-          setCancle(theCancle);
-        }}
-        icon={{
-          name: "arrow-right",
-          size: 15,
-          color: "white",
-        }}
-      />
-      <Button
-        title="STOP"
-        onPress={() => {
-          console.log("Stop");
-          console.log(cancle);
-          scheduleAndCancel(cancle);
-          Notifications.cancelAllScheduledNotificationsAsync();
-        }}
-      /> */
-  }
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f8f8",
+    backgroundColor: "#00308F",
     alignItems: "center",
     // justifyContent: "center",
   },
@@ -200,68 +155,20 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 24,
+    color: "#7FFFD4",
+    fontFamily: "monospace",
   },
-  plusIcon: {
+  lastRow: {
+    flexDirection: "row",
     // top: "30%",
     // left: "40%",
   },
   list: {
-    width: "95%",
+    width: "100%",
     height: "70%",
-    backgroundColor: "blue",
+    // backgroundColor: "blue",
+  },
+  scroller: {
+    flex: 1,
   },
 });
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
-
-async function registerForPushNotificationsAsync() {
-  let token;
-  if (Constants.isDevice) {
-    const { status: existingStatus } =
-      await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== "granted") {
-      alert("Failed to get push token for push notification!");
-      return;
-    }
-    token = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log(token);
-  } else {
-    // alert("Must use physical device for Push Notifications");
-  }
-
-  if (Platform.OS === "android") {
-    Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
-  }
-
-  return token;
-}
-
-{
-  /* <View style={{ alignItems: "center", justifyContent: "center" }}>
-  <Text>
-    <Text>Your expo push token: {expoPushToken}</Text>
-    Title: {notification && notification.request.content.title}{" "}
-  </Text>
-  <Text>Body: {notification && notification.request.content.body}</Text>
-  <Text>
-    Data:{" "}
-    {notification && JSON.stringify(notification.request.content.data)}
-  </Text>
-</View> */
-}

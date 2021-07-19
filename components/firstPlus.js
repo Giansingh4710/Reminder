@@ -13,7 +13,7 @@ export default function PlusIconModal({ dispatch, actions }) {
           //   name="add-outline"
           name="add-circle-outline"
           type="ionicon"
-          color="#002D62"
+          color="#00BFFF"
           size={200}
           onPress={() => {
             dispatch(actions.setInputModal);
