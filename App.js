@@ -1,4 +1,4 @@
-import React, { useState, useRef, useReducer } from "react";
+import React, { useState, useRef, useReducer, useEffect } from "react";
 // import MapView, { Callout, Circle, Marker } from "react-native-maps";
 import {
   StyleSheet,
@@ -21,33 +21,20 @@ import GetInputModal from "./components/getInputModal";
 import ReminderItem from "./components/eachReminer";
 
 export default function App() {
-  //for notifications. No idea how they work
-  const [expoPushToken, setExpoPushToken] = useState("");
-  const [notification, setNotification] = useState(false);
-  const [cancle, setCancle] = useState("");
-  const notificationListener = useRef();
-  const responseListener = useRef();
   //other stuff
   const [state, dispatch] = useReducer(reducer, initialState);
-
-  async function schedulePushNotification(title, body, time) {
-    const notification = await Notifications.scheduleNotificationAsync({
-      content: {
-        title: title,
-        body: body,
-        data: { data: "goes here" },
-      },
-      trigger: {
-        seconds: parseInt(time),
-        repeats: true,
-      },
-    });
-    return notification;
-  }
-
-  async function scheduleAndCancel(theNotificationId) {
-    await Notifications.cancelScheduledNotificationAsync(theNotificationId);
-  }
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(
+      (response) => {
+        // console.log("res", response);
+        let dateObj = new Date(response.notification.date * 1000);
+        console.log(dateObj);
+        let utcString = dateObj.toUTCString();
+        console.log(utcString);
+      }
+    );
+    return () => subscription.remove();
+  });
 
   if (state.allReminders.length === 0) {
     Notifications.cancelAllScheduledNotificationsAsync();
@@ -58,11 +45,7 @@ export default function App() {
           dispatch={dispatch}
           actions={actions}
         />
-        <PlusIconModal
-          theVisible={state.showPlusModal}
-          dispatch={dispatch}
-          actions={actions}
-        />
+        <PlusIconModal dispatch={dispatch} actions={actions} />
       </View>
     );
   }
@@ -101,42 +84,41 @@ export default function App() {
         <View />
       ) : (
         <View style={styles.lastRow}>
-          <View style={{ flex: 1 }}>
-            <Icon
-              // style={{ flex: 1 }}
-              name="add-outline"
-              type="ionicon"
-              color="#00BFFF"
-              size={100}
-              onPress={() => {
-                dispatch(actions.setInputModal);
-              }}
-              // onLongPress={() => console.log("LON")}
-            />
-          </View>
           <TouchableOpacity
-            style={{
-              flex: 1,
-              backgroundColor: "red",
-              borderRadius: 20,
-              width: 110,
-              textAlign: "center",
-            }}
+            style={styles.cancel}
             onPress={() => {
               console.log("cancled all notifications");
               dispatch(actions.deleteAllReminders);
               Notifications.cancelAllScheduledNotificationsAsync();
             }}
           >
-            <Text
-              style={{
-                textAlign: "center",
-                textAlignVertical: "center",
+            <Icon
+              // style={{ flex: 1 }}
+              name="close-outline"
+              type="ionicon"
+              color="#7FFFD4"
+              size={100}
+              onPress={() => {
+                dispatch(actions.setInputModal);
               }}
-            >
-              Cancel all notifications
-            </Text>
+              // onLongPress={() => console.log("LON")}
+            />
+            <Text style={styles.bottomRowText}>Cancel all notifications</Text>
           </TouchableOpacity>
+          <View style={styles.icon}>
+            <Icon
+              // style={{ flex: 1 }}
+              name="add-outline"
+              type="ionicon"
+              color="#7FFFD4"
+              size={100}
+              onPress={() => {
+                dispatch(actions.setInputModal);
+              }}
+              // onLongPress={() => console.log("LON")}
+            />
+            <Text style={styles.bottomRowText}>Add some new notifications</Text>
+          </View>
         </View>
       )}
     </View>
@@ -170,5 +152,21 @@ const styles = StyleSheet.create({
   },
   scroller: {
     flex: 1,
+  },
+  icon: {
+    flex: 1,
+    backgroundColor: "#00BFFF",
+    borderRadius: 20,
+  },
+  cancel: {
+    flex: 1,
+    backgroundColor: "red",
+    borderRadius: 20,
+    // width: 110,
+    textAlign: "center",
+  },
+  bottomRowText: {
+    textAlign: "center",
+    fontFamily: "monospace",
   },
 });

@@ -10,6 +10,7 @@ import {
 
 import Constants from "expo-constants";
 import * as Notifications from "expo-notifications";
+import { Icon, Switch } from "react-native-elements";
 
 export default function GetInputModal({ theVisible, dispatch, actions }) {
   //for notifications. No idea how they work
@@ -21,7 +22,10 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [seconds, setSeconds] = useState("");
+  const [hoursTime, setHours] = useState("");
+  const [minutesTime, setMinutes] = useState("");
   const [disableSubmitButton, setSubmitButton] = useState(true);
+  const [theSwitch, setSwitch] = useState(true);
 
   //for notifications
   useEffect(() => {
@@ -49,12 +53,16 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
 
   //makes submit button clickable or not
   useEffect(() => {
-    if (title !== "" && body !== "" && seconds !== "") {
+    if (
+      title !== "" &&
+      body !== "" &&
+      (seconds !== "" || (hoursTime.length === 2 && minutesTime.length === 2))
+    ) {
       setSubmitButton(false);
     } else {
       setSubmitButton(true);
     }
-  }, [title, body, seconds]);
+  }, [title, body, seconds, hoursTime, minutesTime]);
 
   async function getGubaniJi() {
     console.log("in gurbanuJi func");
@@ -74,41 +82,47 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
     // console.log(shabad);
     return shabad;
   }
-  async function schedulePushNotification(title, body, time) {
-    let notification;
-    // console.log(body.toLowerCase());
-    // console.log(body.toLowerCase() === "gurbaniji");
-    if (body.toLowerCase() === "gurbaniji") {
-      // console.log(await getGubaniJi());
-      notification = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: title,
-          body: await getGubaniJi(),
-          data: { data: "goes here" },
-        },
-        trigger: {
-          seconds: parseInt(time),
-          repeats: true,
-        },
-      });
-    } else {
-      notification = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: title,
-          body: body,
-          data: { data: "goes here" },
-        },
-        trigger: {
-          seconds: parseInt(time),
-          repeats: true,
-        },
-      });
+  async function schedulePushNotification(theBody) {
+    let trigger = {
+      seconds: parseInt(seconds),
+      repeats: true,
+    };
+
+    if (theSwitch === false) {
+      trigger = {
+        hours: parseInt(hoursTime),
+        minutes: parseInt(minutesTime),
+        repeats: true,
+      };
     }
+    //to send notification right away
+    const rightAway = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: theBody,
+        data: { data: "goes here" },
+      },
+      trigger: null,
+    });
+    await Notifications.cancelScheduledNotificationAsync(rightAway);
+    const notification = await Notifications.scheduleNotificationAsync({
+      content: {
+        title: title,
+        body: theBody,
+        data: { data: "goes here" },
+      },
+      trigger,
+    });
     return notification;
   }
 
   return (
-    <Modal transparent animationType="slide" visible={theVisible}>
+    <Modal
+      transparent
+      animationType="slide"
+      visible={theVisible}
+      onRequestClose={() => dispatch(actions.setInputModal)}
+    >
       <View style={styles.modalContainer}>
         <Text style={styles.direction}>
           Enter the details for the type of Notifications you want to recive
@@ -153,24 +167,75 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
               <Text style={styles.suggetion}>GurbaniJi</Text>
             </TouchableOpacity>
           </View>
-          <View style={styles.inputRow}>
-            <Text style={styles.textDirection}>Repeat every: </Text>
-            <TextInput
-              keyboardType="numeric"
-              placeholder="60"
-              value={seconds}
-              onChangeText={(text) => {
-                setSeconds(text);
-              }}
-              style={{ ...styles.inputText, width: "30%" }}
-            ></TextInput>
-            <Text style={styles.textDirection}> seconds</Text>
+          {theSwitch ? (
+            <View style={styles.inputRow}>
+              <Text style={styles.textDirection}>Repeat every: </Text>
+              <TextInput
+                keyboardType="numeric"
+                placeholder="60"
+                value={seconds}
+                onChangeText={(text) => {
+                  setSeconds(text);
+                }}
+                style={{ ...styles.inputText, width: "30%" }}
+              ></TextInput>
+              <Text style={styles.textDirection}> seconds</Text>
+            </View>
+          ) : (
+            <View style={styles.inputRow}>
+              <Text style={styles.textDirection}>Repeat at: </Text>
+              <TextInput
+                keyboardType="numeric"
+                placeholder="15"
+                value={hoursTime}
+                onChangeText={(text) => {
+                  setHours(text);
+                }}
+                style={{ ...styles.inputText, width: "10%" }}
+              />
+              <Text> : </Text>
+              <TextInput
+                keyboardType="numeric"
+                placeholder="30"
+                value={minutesTime}
+                onChangeText={(text) => {
+                  setMinutes(text);
+                }}
+                style={{ ...styles.inputText, width: "10%" }}
+              />
+              <Text style={styles.textDirection}> EveryDay</Text>
+            </View>
+          )}
+          <View style={{ backgroundColor: "yellow" }}>
+            <Text>
+              {theSwitch
+                ? "Repeat every X seconds"
+                : "Repeat at X time every day"}
+            </Text>
+            <View style={styles.theSwitch}>
+              <Switch
+                value={theSwitch}
+                onValueChange={() => {
+                  setSwitch((prev) => {
+                    setSeconds("");
+                    setHours("");
+                    setMinutes("");
+                    return !prev;
+                  });
+                }}
+              />
+            </View>
           </View>
         </View>
         <View style={styles.bottomRow}>
           <TouchableOpacity
             onPress={() => {
               dispatch(actions.setInputModal);
+              setTitle("");
+              setBody("");
+              setSeconds("");
+              setHours("");
+              setMinutes("");
             }}
             style={styles.cancle}
           >
@@ -179,24 +244,37 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
           <TouchableOpacity
             disabled={disableSubmitButton}
             onPress={async () => {
+              dispatch(actions.setInputModal); //mades modal disappear
               setTitle("");
               setBody("");
               setSeconds("");
-              const theId = await schedulePushNotification(
-                title,
-                body,
-                seconds
-              );
+              setHours("");
+              setMinutes("");
+
+              let theBody = body;
+              if (body.toLowerCase().trim() === "gurbaniji") {
+                theBody = await getGubaniJi();
+              }
+              const theId = await schedulePushNotification(theBody);
               // let theId = title;
-              const dataForNotification = {
+              const date = new Date();
+              let dataForNotification = {
                 title,
-                body,
-                seconds: parseInt(seconds),
+                body: theBody,
+                repeat: parseInt(seconds),
+                notificationSetDate: date,
               };
+              if (theSwitch === false) {
+                dataForNotification = {
+                  title,
+                  body: theBody,
+                  repeat: hoursTime + ":" + minutesTime,
+                  notificationSetDate: date,
+                };
+              }
               dispatch(
                 actions.addReminder({ id: theId, data: dataForNotification })
               );
-              dispatch(actions.setInputModal);
             }}
             style={
               disableSubmitButton
@@ -237,7 +315,6 @@ const styles = StyleSheet.create({
     // flex: 1,
     flexDirection: "row",
     margin: 10,
-    // backgroundColor: "blue",
   },
   textDirection: {
     // flex: 1,
@@ -258,6 +335,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: "center",
     textAlignVertical: "bottom",
+  },
+  theSwitch: {
+    right: "85%",
   },
   bottomRow: {
     flexDirection: "row",
