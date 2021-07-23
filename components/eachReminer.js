@@ -16,20 +16,22 @@ export default function ReminderItem({
 }) {
   const [detailsModal, setModal] = useState(false);
   const [theSeconds, setSeconds] = useState(data.repeat);
+  const [theDate, setDate] = useState(new Date().getTime());
+
   let countDown = useRef(data.repeat);
 
   async function logNextTriggerDate() {
     try {
       const nextTriggerDate = await Notifications.getNextTriggerDateAsync({
-        hour: 9,
-        minute: 0,
+        seconds: countDown.current,
       });
-      console.log(nextTriggerDate);
-      console.log(
-        nextTriggerDate === null
-          ? "No next trigger date"
-          : new Date(nextTriggerDate)
+      const newTheseconds = Math.round(
+        (nextTriggerDate - new Date().getTime()) / 1000
       );
+      // console.log(nextTriggerDate - theDate);
+      // console.log(nextTriggerDate, theDate);
+      console.log(newTheseconds);
+      setSeconds(newTheseconds);
     } catch (e) {
       console.warn(`Couldn't have calculated next trigger date: ${e}`);
     }
@@ -39,16 +41,16 @@ export default function ReminderItem({
   const startTime = () => {
     intervalId = setInterval(() => {
       // setSeconds((prev) => prev - 1);
-      countDown.current -= 1;
-      setSeconds(countDown.current);
-      if (countDown.current === 0) {
-        countDown.current = data.repeat;
-      }
+      // countDown.current -= 1;
+      // setSeconds(countDown.current);
+      // if (countDown.current === 0) {
+      //   countDown.current = data.repeat;
+      // }
+      logNextTriggerDate();
     }, 1000);
   };
   useEffect(() => {
     startTime();
-    logNextTriggerDate();
   }, []);
   return (
     <TouchableOpacity
