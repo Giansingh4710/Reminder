@@ -15,6 +15,41 @@ export default function ReminderItem({
   index,
 }) {
   const [detailsModal, setModal] = useState(false);
+  const [theSeconds, setSeconds] = useState(data.repeat);
+  let countDown = useRef(data.repeat);
+
+  async function logNextTriggerDate() {
+    try {
+      const nextTriggerDate = await Notifications.getNextTriggerDateAsync({
+        hour: 9,
+        minute: 0,
+      });
+      console.log(nextTriggerDate);
+      console.log(
+        nextTriggerDate === null
+          ? "No next trigger date"
+          : new Date(nextTriggerDate)
+      );
+    } catch (e) {
+      console.warn(`Couldn't have calculated next trigger date: ${e}`);
+    }
+  }
+
+  let intervalId;
+  const startTime = () => {
+    intervalId = setInterval(() => {
+      // setSeconds((prev) => prev - 1);
+      countDown.current -= 1;
+      setSeconds(countDown.current);
+      if (countDown.current === 0) {
+        countDown.current = data.repeat;
+      }
+    }, 1000);
+  };
+  useEffect(() => {
+    startTime();
+    logNextTriggerDate();
+  }, []);
   return (
     <TouchableOpacity
       onPress={() => {
@@ -66,8 +101,7 @@ export default function ReminderItem({
       </View> */}
       <View style={styles.item}>
         <Text style={styles.text}>Repeats Every:</Text>
-        {/* <Text style={styles.text}>{data.seconds} secs</Text> */}
-        <Text>sec: {data.repeat}</Text>
+        <Text>sec: {theSeconds}</Text>
       </View>
       <View style={styles.item}>
         <Icon

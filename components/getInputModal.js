@@ -53,16 +53,12 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
 
   //makes submit button clickable or not
   useEffect(() => {
-    if (
-      title !== "" &&
-      body !== "" &&
-      (seconds !== "" || (hoursTime.length === 2 && minutesTime.length === 2))
-    ) {
+    if (title !== "" && body !== "" && seconds !== "") {
       setSubmitButton(false);
     } else {
       setSubmitButton(true);
     }
-  }, [title, body, seconds, hoursTime, minutesTime]);
+  }, [title, body, seconds]);
 
   async function getGubaniJi() {
     console.log("in gurbanuJi func");
@@ -83,18 +79,6 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
     return shabad;
   }
   async function schedulePushNotification(theBody) {
-    let trigger = {
-      seconds: parseInt(seconds),
-      repeats: true,
-    };
-
-    if (theSwitch === false) {
-      trigger = {
-        hours: parseInt(hoursTime),
-        minutes: parseInt(minutesTime),
-        repeats: true,
-      };
-    }
     //to send notification right away
     const rightAway = await Notifications.scheduleNotificationAsync({
       content: {
@@ -111,7 +95,10 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
         body: theBody,
         data: { data: "goes here" },
       },
-      trigger,
+      trigger: {
+        seconds: parseInt(seconds),
+        repeats: true,
+      },
     });
     return notification;
   }
@@ -167,64 +154,18 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
               <Text style={styles.suggetion}>GurbaniJi</Text>
             </TouchableOpacity>
           </View>
-          {theSwitch ? (
-            <View style={styles.inputRow}>
-              <Text style={styles.textDirection}>Repeat every: </Text>
-              <TextInput
-                keyboardType="numeric"
-                placeholder="60"
-                value={seconds}
-                onChangeText={(text) => {
-                  setSeconds(text);
-                }}
-                style={{ ...styles.inputText, width: "30%" }}
-              ></TextInput>
-              <Text style={styles.textDirection}> seconds</Text>
-            </View>
-          ) : (
-            <View style={styles.inputRow}>
-              <Text style={styles.textDirection}>Repeat at: </Text>
-              <TextInput
-                keyboardType="numeric"
-                placeholder="15"
-                value={hoursTime}
-                onChangeText={(text) => {
-                  setHours(text);
-                }}
-                style={{ ...styles.inputText, width: "10%" }}
-              />
-              <Text> : </Text>
-              <TextInput
-                keyboardType="numeric"
-                placeholder="30"
-                value={minutesTime}
-                onChangeText={(text) => {
-                  setMinutes(text);
-                }}
-                style={{ ...styles.inputText, width: "10%" }}
-              />
-              <Text style={styles.textDirection}> EveryDay</Text>
-            </View>
-          )}
-          <View style={{ backgroundColor: "yellow" }}>
-            <Text>
-              {theSwitch
-                ? "Repeat every X seconds"
-                : "Repeat at X time every day"}
-            </Text>
-            <View style={styles.theSwitch}>
-              <Switch
-                value={theSwitch}
-                onValueChange={() => {
-                  setSwitch((prev) => {
-                    setSeconds("");
-                    setHours("");
-                    setMinutes("");
-                    return !prev;
-                  });
-                }}
-              />
-            </View>
+          <View style={styles.inputRow}>
+            <Text style={styles.textDirection}>Repeat every: </Text>
+            <TextInput
+              keyboardType="numeric"
+              placeholder="60"
+              value={seconds}
+              onChangeText={(text) => {
+                setSeconds(text);
+              }}
+              style={{ ...styles.inputText, width: "30%" }}
+            ></TextInput>
+            <Text style={styles.textDirection}> seconds</Text>
           </View>
         </View>
         <View style={styles.bottomRow}>
@@ -234,8 +175,6 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
               setTitle("");
               setBody("");
               setSeconds("");
-              setHours("");
-              setMinutes("");
             }}
             style={styles.cancle}
           >
@@ -248,8 +187,6 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
               setTitle("");
               setBody("");
               setSeconds("");
-              setHours("");
-              setMinutes("");
 
               let theBody = body;
               if (body.toLowerCase().trim() === "gurbaniji") {
@@ -258,20 +195,12 @@ export default function GetInputModal({ theVisible, dispatch, actions }) {
               const theId = await schedulePushNotification(theBody);
               // let theId = title;
               const date = new Date();
-              let dataForNotification = {
+              const dataForNotification = {
                 title,
                 body: theBody,
                 repeat: parseInt(seconds),
                 notificationSetDate: date,
               };
-              if (theSwitch === false) {
-                dataForNotification = {
-                  title,
-                  body: theBody,
-                  repeat: hoursTime + ":" + minutesTime,
-                  notificationSetDate: date,
-                };
-              }
               dispatch(
                 actions.addReminder({ id: theId, data: dataForNotification })
               );
