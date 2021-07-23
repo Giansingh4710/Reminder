@@ -1,6 +1,7 @@
 export const initialState = {
   showInputModal: false,
   allReminders: [], //list of objs
+  locationForSun: "",
 };
 
 export const actions = {
@@ -21,6 +22,12 @@ export const actions = {
   },
   deleteAllReminders: {
     type: "DELETE_ALL",
+  },
+  setLocation: (thePlace) => {
+    return {
+      type: "SET_LOCATION",
+      thePlace,
+    };
   },
 };
 
@@ -50,6 +57,12 @@ export const reducer = (state, action) => {
     return {
       ...state,
       allReminders: [],
+    };
+  }
+  if (action.type === "SET_LOCATION") {
+    return {
+      ...state,
+      locationForSun: action.thePlace,
     };
   }
   return state;

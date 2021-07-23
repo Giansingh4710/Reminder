@@ -16,41 +16,29 @@ export default function ReminderItem({
 }) {
   const [detailsModal, setModal] = useState(false);
   const [theSeconds, setSeconds] = useState(data.repeat);
-  const [theDate, setDate] = useState(new Date().getTime());
+  // const [initialTime, setInitialTime] = useState(new Date().getTime());
+  const [countDown, setCountDown] = useState(data.repeat);
 
-  let countDown = useRef(data.repeat);
+  // let countDown = useRef(data.repeat);
 
+  let initialTime = new Date().getTime();
   async function logNextTriggerDate() {
-    try {
-      const nextTriggerDate = await Notifications.getNextTriggerDateAsync({
-        seconds: countDown.current,
-      });
-      const newTheseconds = Math.round(
-        (nextTriggerDate - new Date().getTime()) / 1000
-      );
-      // console.log(nextTriggerDate - theDate);
-      // console.log(nextTriggerDate, theDate);
-      console.log(newTheseconds);
-      setSeconds(newTheseconds);
-    } catch (e) {
-      console.warn(`Couldn't have calculated next trigger date: ${e}`);
+    const timeLeftTillNotification = Math.round(
+      (initialTime + data.repeat * 1000 - new Date().getTime()) / 1000
+    );
+
+    if (timeLeftTillNotification < 1) {
+      initialTime += data.repeat * 1000;
     }
+    setSeconds(timeLeftTillNotification);
   }
 
   let intervalId;
-  const startTime = () => {
-    intervalId = setInterval(() => {
-      // setSeconds((prev) => prev - 1);
-      // countDown.current -= 1;
-      // setSeconds(countDown.current);
-      // if (countDown.current === 0) {
-      //   countDown.current = data.repeat;
-      // }
-      logNextTriggerDate();
-    }, 1000);
-  };
   useEffect(() => {
-    startTime();
+    intervalId = setInterval(logNextTriggerDate, 1000);
+    return () => {
+      clearInterval(intervalId);
+    };
   }, []);
   return (
     <TouchableOpacity
@@ -112,7 +100,7 @@ export default function ReminderItem({
           color="#002D62"
           // size={25}
           onPress={async () => {
-            // clearInterval(intervalId);
+            clearInterval(intervalId);
             await Notifications.cancelScheduledNotificationAsync(id);
             console.log("deleted: " + id);
             dispatch(actions.deleteReminder(id));

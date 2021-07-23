@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   FlatList,
   ScrollView,
+  StatusBar,
+  Button,
 } from "react-native";
 
 import Constants from "expo-constants";
@@ -19,10 +21,14 @@ import { initialState, actions, reducer } from "./state";
 import PlusIconModal from "./components/firstPlus";
 import GetInputModal from "./components/getInputModal";
 import ReminderItem from "./components/eachReminer";
+import RandomShabad from "./components/randomGurbani";
+import SunTimes from "./getSunStuffModal";
 
 export default function App() {
   //other stuff
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [shabadModal, setShabadModal] = useState(false);
+
   useEffect(() => {
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
@@ -36,6 +42,8 @@ export default function App() {
     return () => subscription.remove();
   });
 
+  const SunStuff = <SunTimes location={state.locationForSun} />;
+
   if (state.allReminders.length === 0) {
     Notifications.cancelAllScheduledNotificationsAsync();
     return (
@@ -46,6 +54,7 @@ export default function App() {
           actions={actions}
         />
         <PlusIconModal dispatch={dispatch} actions={actions} />
+        {SunStuff}
       </View>
     );
   }
@@ -58,6 +67,7 @@ export default function App() {
       />
       <View style={styles.header}>
         <Text style={styles.headerText}>Your Reminders</Text>
+        {SunStuff}
       </View>
       <View style={styles.list}>
         <FlatList
@@ -131,6 +141,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#00308F",
     alignItems: "center",
     // justifyContent: "center",
+  },
+  getShabad: {
+    top: "5%",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#6495ED",
   },
   header: {
     paddingTop: "10%",
